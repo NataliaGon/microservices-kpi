@@ -1,0 +1,20 @@
+# Hazelcast 5.4 - CP Subsystem enabled (required for FencedLock, AtomicLong)
+# Task 2 - Distributed Lock Lab
+
+hazelcast:
+  cluster-name: dev
+
+  cp-subsystem:
+    cp-member-count: 3
+    group-size: 3
+
+  network:
+    join:
+      multicast:
+        enabled: false
+      tcp-ip:
+        enabled: true
+        member-list:
+          - hz1
+          - hz2
+          - hz3

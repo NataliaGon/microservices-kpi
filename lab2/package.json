@@ -1,0 +1,16 @@
+{
+  "name": "lab2-distributed-lock",
+  "version": "1.0.0",
+  "description": "Task 2 - Hazelcast Distributed Lock Lab (Node.js)",
+  "main": "index.js",
+  "scripts": {
+    "part1": "node distributed_map.js",
+    "part2": "node counter_service.js",
+    "part2:1": "node counter_service.js 1",
+    "part2:2": "node counter_service.js 2",
+    "part2:3": "node counter_service.js 3"
+  },
+  "dependencies": {
+    "hazelcast-client": "5.3.0"
+  }
+}
