@@ -1,6 +1,3 @@
-#!/bin/bash
-# Quick verification that lab1 services work
-# Run: cd lab1 && ./test.sh (or bash test.sh)
 
 set -e
 FACADE="${FACADE_URL:-http://localhost:3000}"
