@@ -31,3 +31,8 @@ app.get("/transactions/:user_Id", (req, res) => {
 
   res.json({ transactions: userTransactions });
 });
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Logging service running on port ${PORT}`);
+});
