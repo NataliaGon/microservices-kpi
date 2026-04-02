@@ -109,8 +109,15 @@ app.get("/accounts", async (req, res) => {
 });
 
 // Get timing statistics
+// Note: Logging and Counter are called in PARALLEL (Promise.all), so both timers
+// measure the same span per request. totalTimeMs = sum of request durations (can
+// exceed wall clock when many requests run concurrently).
 app.get("/stats", (req, res) => {
+  const totalParallelMs =
+    Math.max(totalLoggingTime, totalCounterTime) || totalLoggingTime || totalCounterTime;
   res.json({
+    _note:
+      "Logging and Counter run in PARALLEL — totalTimeMs is accumulated per-request duration (sum), NOT additive. avgTimeMs is per-request.",
     logging: {
       totalTimeMs: totalLoggingTime,
       callCount: loggingCallCount,
@@ -125,6 +132,15 @@ app.get("/stats", (req, res) => {
       avgTimeMs:
         counterCallCount > 0
           ? (totalCounterTime / counterCallCount).toFixed(2)
+          : 0,
+    },
+    // Combined view: effective time (same for both, since parallel)
+    effective: {
+      totalAccumulatedMs: totalParallelMs,
+      callCount: loggingCallCount,
+      avgPerRequestMs:
+        loggingCallCount > 0
+          ? (totalParallelMs / loggingCallCount).toFixed(2)
           : 0,
     },
   });

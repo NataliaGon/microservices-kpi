@@ -1,14 +1,16 @@
 // Part I - Distributed Map
-const MAP_NAME = 'lab2-distributed-map';
+const MAP_NAME = "lab2-distributed-map";
 const NUM_ENTRIES = 10_000;
 
 // Part II - Counter Service
-const COUNTER_MAP = 'counter-map';
-const COUNTER_KEY = 'likes';
-const LOCK_NAME = 'counter-lock';
-const ITERATION_NAME = 'iteration';
+const COUNTER_MAP = "counter-map";
+const COUNTER_KEY = "likes";
+const LOCK_NAME = "counter-lock";
+const ITERATION_NAME = "iteration";
 const TARGET = 100_000;
-const SLEEP_MS = 1; // 1 = ~2 min (time to kill services for failover), 0 = ~15 sec
+const SLEEP_MS = 1; // пауза між інкрементами (для демо failover)
+
+const CP_WARMUP_MS = 15_000;
 
 module.exports = {
   MAP_NAME,
@@ -19,4 +21,5 @@ module.exports = {
   ITERATION_NAME,
   TARGET,
   SLEEP_MS,
+  CP_WARMUP_MS,
 };

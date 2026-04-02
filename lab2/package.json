@@ -1,7 +1,7 @@
 {
   "name": "lab2-distributed-lock",
   "version": "1.0.0",
-  "description": "Task 2 - Hazelcast Distributed Lock Lab (Node.js)",
+  "description": "Task 2 - CP Subsystem FencedLock + IAtomicLong (official client https://github.com/hazelcast/hazelcast-nodejs-client)",
   "main": "index.js",
   "scripts": {
     "part1": "node distributed_map.js",

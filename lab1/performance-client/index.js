@@ -51,7 +51,7 @@ async function runScenario1() {
   // Get timing stats
   try {
     const statsRes = await axios.get(`${FACADE_URL}/stats`);
-    console.log("\nTiming breakdown:");
+    console.log("\nTiming breakdown (Logging & Counter run in PARALLEL — same duration per request):");
     console.log(
       "  Logging service:",
       JSON.stringify(statsRes.data.logging, null, 2),
@@ -60,6 +60,15 @@ async function runScenario1() {
       "  Counter service:",
       JSON.stringify(statsRes.data.counter, null, 2),
     );
+    if (statsRes.data.effective) {
+      console.log(
+        "  Effective (accumulated across requests):",
+        JSON.stringify(statsRes.data.effective, null, 2),
+      );
+      console.log(
+        "  => totalTime (wall clock) < accumulated ms when requests run in parallel",
+      );
+    }
   } catch (e) {
     console.log("(Stats endpoint not available)");
   }
@@ -112,7 +121,7 @@ async function runScenario2() {
   // Get timing stats
   try {
     const statsRes = await axios.get(`${FACADE_URL}/stats`);
-    console.log("\nTiming breakdown:");
+    console.log("\nTiming breakdown (Logging & Counter run in PARALLEL — same duration per request):");
     console.log(
       "  Logging service:",
       JSON.stringify(statsRes.data.logging, null, 2),
@@ -121,6 +130,15 @@ async function runScenario2() {
       "  Counter service:",
       JSON.stringify(statsRes.data.counter, null, 2),
     );
+    if (statsRes.data.effective) {
+      console.log(
+        "  Effective (accumulated across requests):",
+        JSON.stringify(statsRes.data.effective, null, 2),
+      );
+      console.log(
+        "  => totalTime (wall clock) < accumulated ms when requests run in parallel",
+      );
+    }
   } catch (e) {
     console.log("(Stats endpoint not available)");
   }
