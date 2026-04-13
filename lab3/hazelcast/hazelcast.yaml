@@ -1,0 +1,14 @@
+# Reference only — the official image uses hazelcast-docker.xml unless you set JAVA_OPTS / HZ_*.
+# Keep cluster name in sync with logging-service HZ_CLUSTER_NAME (default: dev).
+hazelcast:
+  cluster-name: dev
+  network:
+    join:
+      multicast:
+        enabled: false
+      tcp-ip:
+        enabled: true
+        member-list:
+          - hazelcast-1
+          - hazelcast-2
+          - hazelcast-3

@@ -1,0 +1,103 @@
+# Host ports (change if busy): facade 13000, counter 13022, logging 13001–13003, Postgres 15432.
+# Hazelcast members are not published; use `docker stop lab3-hazelcast-1-1` etc. for resilience tests.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: counter
+      POSTGRES_PASSWORD: counter
+      POSTGRES_DB: counterdb
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U counter -d counterdb"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  hazelcast-1:
+    image: hazelcast/hazelcast:5.6.0
+    hostname: hazelcast-1
+    volumes:
+      - ./hazelcast/hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+
+  hazelcast-2:
+    image: hazelcast/hazelcast:5.6.0
+    hostname: hazelcast-2
+    volumes:
+      - ./hazelcast/hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+
+  hazelcast-3:
+    image: hazelcast/hazelcast:5.6.0
+    hostname: hazelcast-3
+    volumes:
+      - ./hazelcast/hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+
+  logging-1:
+    build: ./logging-service
+    environment:
+      PORT: "3001"
+      LOGGING_INSTANCE: logging-1
+      HZ_CLUSTER_NAME: dev
+      HZ_MEMBER_ADDRESSES: hazelcast-1:5701,hazelcast-2:5701,hazelcast-3:5701
+    depends_on:
+      - hazelcast-1
+      - hazelcast-2
+      - hazelcast-3
+    ports:
+      - "13001:3001"
+
+  logging-2:
+    build: ./logging-service
+    environment:
+      PORT: "3001"
+      LOGGING_INSTANCE: logging-2
+      HZ_CLUSTER_NAME: dev
+      HZ_MEMBER_ADDRESSES: hazelcast-1:5701,hazelcast-2:5701,hazelcast-3:5701
+    depends_on:
+      - hazelcast-1
+      - hazelcast-2
+      - hazelcast-3
+    ports:
+      - "13002:3001"
+
+  logging-3:
+    build: ./logging-service
+    environment:
+      PORT: "3001"
+      LOGGING_INSTANCE: logging-3
+      HZ_CLUSTER_NAME: dev
+      HZ_MEMBER_ADDRESSES: hazelcast-1:5701,hazelcast-2:5701,hazelcast-3:5701
+    depends_on:
+      - hazelcast-1
+      - hazelcast-2
+      - hazelcast-3
+    ports:
+      - "13003:3001"
+
+  counter:
+    build: ./counter-service
+    environment:
+      PORT: "3002"
+      DATABASE_URL: postgresql://counter:counter@postgres:5432/counterdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "13022:3002"
+
+  facade:
+    build: ./facade-service
+    environment:
+      PORT: "3000"
+      LOGGING_SERVICE_URLS: http://logging-1:3001,http://logging-2:3001,http://logging-3:3001
+      COUNTER_SERVICE_URL: http://counter:3002
+    depends_on:
+      - logging-1
+      - logging-2
+      - logging-3
+      - counter
+    ports:
+      - "13000:3000"

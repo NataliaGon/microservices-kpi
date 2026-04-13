@@ -1,0 +1,14 @@
+{
+  "name": "performance-client",
+  "version": "1.0.0",
+  "description": "HTTP client for performance testing the microservices",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js",
+    "scenario1": "node index.js --scenario 1",
+    "scenario2": "node index.js --scenario 2"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  }
+}
