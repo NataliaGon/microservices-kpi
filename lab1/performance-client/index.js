@@ -48,29 +48,13 @@ async function runScenario1() {
   const balances = accountsRes.data.balances;
   console.log("\nFinal balances:", balances);
 
-  // Get timing stats
   try {
-    const statsRes = await axios.get(`${FACADE_URL}/stats`);
-    console.log("\nTiming breakdown (Logging & Counter run in PARALLEL — same duration per request):");
+    const { data } = await axios.get(`${FACADE_URL}/stats`);
     console.log(
-      "  Logging service:",
-      JSON.stringify(statsRes.data.logging, null, 2),
+      `Facade avg (ms/call): logging ${data.logging.avgTimeMs} | counter ${data.counter.avgTimeMs}`,
     );
-    console.log(
-      "  Counter service:",
-      JSON.stringify(statsRes.data.counter, null, 2),
-    );
-    if (statsRes.data.effective) {
-      console.log(
-        "  Effective (accumulated across requests):",
-        JSON.stringify(statsRes.data.effective, null, 2),
-      );
-      console.log(
-        "  => totalTime (wall clock) < accumulated ms when requests run in parallel",
-      );
-    }
   } catch (e) {
-    console.log("(Stats endpoint not available)");
+    /* optional */
   }
 
   return { totalTime, totalRequests, requestsPerSecond };
@@ -118,29 +102,13 @@ async function runScenario2() {
   const userRes = await axios.get(`${FACADE_URL}/user/${sharedUserId}`);
   console.log("\nFinal balance for shared_user:", userRes.data.balance);
 
-  // Get timing stats
   try {
-    const statsRes = await axios.get(`${FACADE_URL}/stats`);
-    console.log("\nTiming breakdown (Logging & Counter run in PARALLEL — same duration per request):");
+    const { data } = await axios.get(`${FACADE_URL}/stats`);
     console.log(
-      "  Logging service:",
-      JSON.stringify(statsRes.data.logging, null, 2),
+      `Facade avg (ms/call): logging ${data.logging.avgTimeMs} | counter ${data.counter.avgTimeMs}`,
     );
-    console.log(
-      "  Counter service:",
-      JSON.stringify(statsRes.data.counter, null, 2),
-    );
-    if (statsRes.data.effective) {
-      console.log(
-        "  Effective (accumulated across requests):",
-        JSON.stringify(statsRes.data.effective, null, 2),
-      );
-      console.log(
-        "  => totalTime (wall clock) < accumulated ms when requests run in parallel",
-      );
-    }
   } catch (e) {
-    console.log("(Stats endpoint not available)");
+    /* optional */
   }
 
   return { totalTime, totalRequests, requestsPerSecond };

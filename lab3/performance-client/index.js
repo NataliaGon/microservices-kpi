@@ -1,8 +1,6 @@
-#!/usr/bin/env node
 const axios = require("axios");
 
-const FACADE_URL =
-  process.env.FACADE_URL || "http://localhost:13000";
+const FACADE_URL = process.env.FACADE_URL || "http://localhost:13000";
 
 async function runTransaction(userId, amount) {
   const response = await axios.post(`${FACADE_URL}/transaction`, {
@@ -54,9 +52,7 @@ async function runScenario1() {
     console.log(
       `Facade avg (ms/call): logging ${data.logging.avgTimeMs} | counter ${data.counter.avgTimeMs}`,
     );
-  } catch (e) {
-    /* optional */
-  }
+  } catch (e) {}
 
   return { totalTime, totalRequests, requestsPerSecond };
 }
@@ -99,7 +95,6 @@ async function runScenario2() {
   console.log(`Total requests: ${totalRequests}`);
   console.log(`Requests per second: ${requestsPerSecond}`);
 
-  // Verify results
   const userRes = await axios.get(`${FACADE_URL}/user/${sharedUserId}`);
   console.log("\nFinal balance for shared_user:", userRes.data.balance);
 
@@ -108,9 +103,7 @@ async function runScenario2() {
     console.log(
       `Facade avg (ms/call): logging ${data.logging.avgTimeMs} | counter ${data.counter.avgTimeMs}`,
     );
-  } catch (e) {
-    /* optional */
-  }
+  } catch (e) {}
 
   return { totalTime, totalRequests, requestsPerSecond };
 }

@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-# Lab 3 demo: POST msg1..msg10 then GET user (requires stack: docker compose up -d)
 set -euo pipefail
 BASE="${FACADE_URL:-http://localhost:13000}"
 USER_ID="${DEMO_USER_ID:-lab3user}"
