@@ -1,0 +1,149 @@
+# Lab 4 — message queue (Hazelcast Queue), config-server, 3× logging, Hazelcast cluster
+services:
+  hz1:
+    image: hazelcast/hazelcast:5.4.0
+    container_name: lab4-hz1
+    hostname: hz1
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5701:5701"
+
+  hz2:
+    image: hazelcast/hazelcast:5.4.0
+    container_name: lab4-hz2
+    hostname: hz2
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5702:5701"
+    depends_on:
+      - hz1
+
+  hz3:
+    image: hazelcast/hazelcast:5.4.0
+    container_name: lab4-hz3
+    hostname: hz3
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5703:5701"
+    depends_on:
+      - hz1
+
+  config-server:
+    build: ./config-server
+    container_name: lab4-config
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+
+  logging-service-1:
+    build: ./logging-service
+    container_name: lab4-logging-1
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:4000
+      - PUBLIC_BASE_URL=http://logging-service-1:3001
+      - INSTANCE_LABEL=logging-1
+      - HZ_MEMBERS=hz1:5701,hz2:5701,hz3:5701
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3011:3001"
+
+  logging-service-2:
+    build: ./logging-service
+    container_name: lab4-logging-2
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:4000
+      - PUBLIC_BASE_URL=http://logging-service-2:3001
+      - INSTANCE_LABEL=logging-2
+      - HZ_MEMBERS=hz1:5701,hz2:5701,hz3:5701
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3012:3001"
+
+  logging-service-3:
+    build: ./logging-service
+    container_name: lab4-logging-3
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:4000
+      - PUBLIC_BASE_URL=http://logging-service-3:3001
+      - INSTANCE_LABEL=logging-3
+      - HZ_MEMBERS=hz1:5701,hz2:5701,hz3:5701
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3013:3001"
+
+  # Hazelcast-клієнт тільки тут — docker pause НЕ застосовувати до цього контейнера
+  counter-worker:
+    build: ./counter-service
+    command: ["node", "worker.js"]
+    container_name: lab4-counter-worker
+    volumes:
+      - counter-data:/data
+    environment:
+      - HZ_MEMBERS=hz1:5701,hz2:5701,hz3:5701
+      - SQLITE_PATH=/data/counter.db
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+
+  # Лише HTTP для GET балансу — саме цей контейнер можна pause для демонстрації
+  counter-api:
+    build: ./counter-service
+    command: ["node", "api.js"]
+    container_name: lab4-counter-api
+    volumes:
+      - counter-data:/data
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:4000
+      - PUBLIC_BASE_URL=http://counter-api:3002
+      - SQLITE_PATH=/data/counter.db
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+      - counter-worker
+    ports:
+      - "3002:3002"
+
+  facade-service:
+    build: ./facade-service
+    container_name: lab4-facade
+    ports:
+      - "3000:3000"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:4000
+      - HZ_MEMBERS=hz1:5701,hz2:5701,hz3:5701
+    depends_on:
+      - config-server
+      - hz1
+      - hz2
+      - hz3
+      - logging-service-1
+      - logging-service-2
+      - logging-service-3
+      - counter-api
+      - counter-worker
+
+volumes:
+  counter-data:

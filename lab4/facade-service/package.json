@@ -1,0 +1,13 @@
+{
+  "name": "lab4-facade-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "express": "^4.21.0",
+    "hazelcast-client": "^5.4.0"
+  }
+}
