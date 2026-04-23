@@ -14,6 +14,22 @@ let totalCounterTime = 0;
 let loggingCallCount = 0;
 let counterCallCount = 0;
 
+async function withServiceTiming(target, fn) {
+  const started = Date.now();
+  try {
+    return await fn();
+  } finally {
+    const elapsed = Date.now() - started;
+    if (target === "logging") {
+      totalLoggingTime += elapsed;
+      loggingCallCount++;
+    } else if (target === "counter") {
+      totalCounterTime += elapsed;
+      counterCallCount++;
+    }
+  }
+}
+
 app.post("/transaction", async (req, res) => {
   try {
     const { user_Id, amount } = req.body;
@@ -31,18 +47,14 @@ app.post("/transaction", async (req, res) => {
       timestamp: transaction_ID,
     };
 
-    const loggingStart = Date.now();
-    const counterStart = Date.now();
-
     const [, counterResponse] = await Promise.all([
-      axios.post(`${LOGGING_SERVICE_URL}/log`, message),
-      axios.post(`${COUNTER_SERVICE_URL}/transaction`, message),
+      withServiceTiming("logging", () =>
+        axios.post(`${LOGGING_SERVICE_URL}/log`, message),
+      ),
+      withServiceTiming("counter", () =>
+        axios.post(`${COUNTER_SERVICE_URL}/transaction`, message),
+      ),
     ]);
-
-    totalLoggingTime += Date.now() - loggingStart;
-    totalCounterTime += Date.now() - counterStart;
-    loggingCallCount++;
-    counterCallCount++;
 
     const balance = counterResponse.data.balance;
 
@@ -61,18 +73,14 @@ app.get("/user/:user_Id", async (req, res) => {
   try {
     const { user_Id } = req.params;
 
-    const loggingStart = Date.now();
-    const counterStart = Date.now();
-
     const [loggingRes, counterResponse] = await Promise.all([
-      axios.get(`${LOGGING_SERVICE_URL}/transactions/${user_Id}`),
-      axios.get(`${COUNTER_SERVICE_URL}/balance/${user_Id}`),
+      withServiceTiming("logging", () =>
+        axios.get(`${LOGGING_SERVICE_URL}/transactions/${user_Id}`),
+      ),
+      withServiceTiming("counter", () =>
+        axios.get(`${COUNTER_SERVICE_URL}/balance/${user_Id}`),
+      ),
     ]);
-
-    totalLoggingTime += Date.now() - loggingStart;
-    totalCounterTime += Date.now() - counterStart;
-    loggingCallCount++;
-    counterCallCount++;
 
     const balance = counterResponse.data.balance ?? 0;
     const transactions = loggingRes.data.transactions ?? [];
@@ -90,11 +98,9 @@ app.get("/user/:user_Id", async (req, res) => {
 // Get balances of all clients
 app.get("/accounts", async (req, res) => {
   try {
-    const counterStart = Date.now();
-
-    const counterResponse = await axios.get(`${COUNTER_SERVICE_URL}/balances`);
-    totalCounterTime += Date.now() - counterStart;
-    counterCallCount++;
+    const counterResponse = await withServiceTiming("counter", () =>
+      axios.get(`${COUNTER_SERVICE_URL}/balances`),
+    );
 
     const balances = counterResponse.data.balances ?? {};
 

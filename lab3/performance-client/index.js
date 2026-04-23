@@ -1,6 +1,8 @@
 const axios = require("axios");
 
 const FACADE_URL = process.env.FACADE_URL || "http://localhost:13000";
+const CLIENTS = Number(process.env.CLIENTS || 10);
+const TX_PER_CLIENT = Number(process.env.TX_PER_CLIENT || 10000);
 
 async function runTransaction(userId, amount) {
   const response = await axios.post(`${FACADE_URL}/transaction`, {
@@ -11,14 +13,18 @@ async function runTransaction(userId, amount) {
 }
 
 async function runScenario1() {
-  // 10 clients, each makes 10K transactions adding 1 to their own account
-  const numClients = 10;
-  const transactionsPerClient = 10000;
+  // 10 clients, each makes N transactions adding 1 to their own account
+  const numClients = CLIENTS;
+  const transactionsPerClient = TX_PER_CLIENT;
 
   console.log(
     "\n=== Scenario 1: 10 clients, 10K transactions each (own account) ===",
   );
   console.log(`Expected: 10 accounts with 10,000 balance each\n`);
+
+  try {
+    await axios.post(`${FACADE_URL}/stats/reset`);
+  } catch {}
 
   const startTime = Date.now();
 
@@ -54,13 +60,29 @@ async function runScenario1() {
     );
   } catch (e) {}
 
-  return { totalTime, totalRequests, requestsPerSecond };
+  let stats = null;
+  try {
+    const { data } = await axios.get(`${FACADE_URL}/stats`);
+    stats = data;
+  } catch {}
+
+  const result = {
+    totalRequests,
+    totalTimeSec: Number(totalTime.toFixed(3)),
+    rps: Number(requestsPerSecond),
+    loggingContributionMsPerCall: Number(stats?.logging?.avgTimeMs || 0),
+    counterContributionMsPerCall: Number(stats?.counter?.avgTimeMs || 0),
+    loggingTotalMs: Number(stats?.logging?.totalTimeMs || 0),
+    counterTotalMs: Number(stats?.counter?.totalTimeMs || 0),
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
 
 async function runScenario2() {
-  // 10 clients, each makes 10K transactions adding 1 to the SAME account
-  const numClients = 10;
-  const transactionsPerClient = 10000;
+  // 10 clients, each makes N transactions adding 1 to the SAME account
+  const numClients = CLIENTS;
+  const transactionsPerClient = TX_PER_CLIENT;
   const sharedUserId = "shared_user";
 
   console.log(
@@ -105,7 +127,23 @@ async function runScenario2() {
     );
   } catch (e) {}
 
-  return { totalTime, totalRequests, requestsPerSecond };
+  let stats = null;
+  try {
+    const { data } = await axios.get(`${FACADE_URL}/stats`);
+    stats = data;
+  } catch {}
+
+  const result = {
+    totalRequests,
+    totalTimeSec: Number(totalTime.toFixed(3)),
+    rps: Number(requestsPerSecond),
+    loggingContributionMsPerCall: Number(stats?.logging?.avgTimeMs || 0),
+    counterContributionMsPerCall: Number(stats?.counter?.avgTimeMs || 0),
+    loggingTotalMs: Number(stats?.logging?.totalTimeMs || 0),
+    counterTotalMs: Number(stats?.counter?.totalTimeMs || 0),
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
 }
 
 async function main() {

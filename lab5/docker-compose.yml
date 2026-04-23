@@ -1,0 +1,165 @@
+services:
+  hz1:
+    image: hazelcast/hazelcast:5.4.0
+    hostname: hz1
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5701:5701"
+
+  hz2:
+    image: hazelcast/hazelcast:5.4.0
+    hostname: hz2
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5702:5701"
+    depends_on:
+      - hz1
+
+  hz3:
+    image: hazelcast/hazelcast:5.4.0
+    hostname: hz3
+    command: ["hz", "start", "--config", "/opt/hazelcast/config/hazelcast.yaml"]
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml:ro
+    ports:
+      - "5703:5701"
+    depends_on:
+      - hz1
+
+  consul:
+    image: hashicorp/consul:1.20
+    command: "agent -server -bootstrap-expect=1 -ui -client=0.0.0.0"
+    hostname: consul
+    ports:
+      - "8500:8500"
+
+  consul-seed:
+    image: curlimages/curl:8.8.0
+    depends_on:
+      - consul
+    restart: "no"
+    command: >
+      sh -ec "
+      until curl -sf http://consul:8500/v1/status/leader >/dev/null; do
+        echo 'waiting for consul...';
+        sleep 1;
+      done;
+      curl -sf -X PUT --data 'hz1:5701,hz2:5701,hz3:5701' http://consul:8500/v1/kv/config/hazelcast/members;
+      curl -sf -X PUT --data 'dev' http://consul:8500/v1/kv/config/hazelcast/cluster-name;
+      curl -sf -X PUT --data 'lab5-user-transactions' http://consul:8500/v1/kv/config/hazelcast/multimap/user-transactions;
+      curl -sf -X PUT --data 'lab5-counter-queue' http://consul:8500/v1/kv/config/mq/queue/name;
+      echo 'consul kv seeded'
+      "
+
+  logging-service-1:
+    build: ./logging-service
+    hostname: logging-service-1
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SERVICE_NAME=logging-service
+      - INSTANCE_LABEL=logging-1
+      - SERVICE_ID=logging-service-1
+      - SERVICE_ADDRESS=logging-service-1
+      - PORT=3001
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3011:3001"
+
+  logging-service-2:
+    build: ./logging-service
+    hostname: logging-service-2
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SERVICE_NAME=logging-service
+      - INSTANCE_LABEL=logging-2
+      - SERVICE_ID=logging-service-2
+      - SERVICE_ADDRESS=logging-service-2
+      - PORT=3001
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3012:3001"
+
+  logging-service-3:
+    build: ./logging-service
+    hostname: logging-service-3
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SERVICE_NAME=logging-service
+      - INSTANCE_LABEL=logging-3
+      - SERVICE_ID=logging-service-3
+      - SERVICE_ADDRESS=logging-service-3
+      - PORT=3001
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+    ports:
+      - "3013:3001"
+
+  counter-worker:
+    build: ./counter-service
+    command: ["node", "worker.js"]
+    volumes:
+      - counter-data:/data
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SQLITE_PATH=/data/counter.db
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+
+  counter-api:
+    build: ./counter-service
+    command: ["node", "api.js"]
+    volumes:
+      - counter-data:/data
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SERVICE_NAME=counter-service
+      - SQLITE_PATH=/data/counter.db
+      - PORT=3002
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+      - counter-worker
+    ports:
+      - "3002:3002"
+
+  facade-service:
+    build: ./facade-service
+    ports:
+      - "3000:3000"
+    environment:
+      - CONSUL_HTTP_ADDR=http://consul:8500
+      - SERVICE_NAME=facade-service
+      - PORT=3000
+    depends_on:
+      - consul-seed
+      - hz1
+      - hz2
+      - hz3
+      - logging-service-1
+      - logging-service-2
+      - logging-service-3
+      - counter-api
+      - counter-worker
+
+volumes:
+  counter-data:

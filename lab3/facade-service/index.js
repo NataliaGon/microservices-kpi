@@ -74,6 +74,22 @@ let totalCounterTime = 0;
 let loggingCallCount = 0;
 let counterCallCount = 0;
 
+async function withServiceTiming(target, fn) {
+  const started = Date.now();
+  try {
+    return await fn();
+  } finally {
+    const elapsed = Date.now() - started;
+    if (target === "logging") {
+      totalLoggingTime += elapsed;
+      loggingCallCount++;
+    } else if (target === "counter") {
+      totalCounterTime += elapsed;
+      counterCallCount++;
+    }
+  }
+}
+
 app.post("/transaction", async (req, res) => {
   try {
     const { user_Id, amount, msg } = req.body;
@@ -92,20 +108,14 @@ app.post("/transaction", async (req, res) => {
       ...(msg !== undefined && { msg }),
     };
 
-    const loggingStart = Date.now();
-    const counterStart = Date.now();
-
     const [, counterResponse] = await Promise.all([
-      loggingPost("/log", message),
-      axios.post(`${COUNTER_SERVICE_URL}/transaction`, message, {
-        timeout: HTTP_TIMEOUT_MS,
-      }),
+      withServiceTiming("logging", () => loggingPost("/log", message)),
+      withServiceTiming("counter", () =>
+        axios.post(`${COUNTER_SERVICE_URL}/transaction`, message, {
+          timeout: HTTP_TIMEOUT_MS,
+        }),
+      ),
     ]);
-
-    totalLoggingTime += Date.now() - loggingStart;
-    totalCounterTime += Date.now() - counterStart;
-    loggingCallCount++;
-    counterCallCount++;
 
     const balance = counterResponse.data.balance;
 
@@ -123,20 +133,16 @@ app.get("/user/:user_Id", async (req, res) => {
   try {
     const { user_Id } = req.params;
 
-    const loggingStart = Date.now();
-    const counterStart = Date.now();
-
     const [loggingRes, counterResponse] = await Promise.all([
-      loggingGet(`/transactions/${encodeURIComponent(user_Id)}`),
-      axios.get(`${COUNTER_SERVICE_URL}/balance/${encodeURIComponent(user_Id)}`, {
-        timeout: HTTP_TIMEOUT_MS,
-      }),
+      withServiceTiming("logging", () =>
+        loggingGet(`/transactions/${encodeURIComponent(user_Id)}`),
+      ),
+      withServiceTiming("counter", () =>
+        axios.get(`${COUNTER_SERVICE_URL}/balance/${encodeURIComponent(user_Id)}`, {
+          timeout: HTTP_TIMEOUT_MS,
+        }),
+      ),
     ]);
-
-    totalLoggingTime += Date.now() - loggingStart;
-    totalCounterTime += Date.now() - counterStart;
-    loggingCallCount++;
-    counterCallCount++;
 
     const balance = counterResponse.data.balance ?? 0;
     const transactions = loggingRes.data.transactions ?? [];
@@ -153,13 +159,11 @@ app.get("/user/:user_Id", async (req, res) => {
 
 app.get("/accounts", async (req, res) => {
   try {
-    const counterStart = Date.now();
-
-    const counterResponse = await axios.get(`${COUNTER_SERVICE_URL}/balances`, {
-      timeout: HTTP_TIMEOUT_MS,
-    });
-    totalCounterTime += Date.now() - counterStart;
-    counterCallCount++;
+    const counterResponse = await withServiceTiming("counter", () =>
+      axios.get(`${COUNTER_SERVICE_URL}/balances`, {
+        timeout: HTTP_TIMEOUT_MS,
+      }),
+    );
 
     const balances = counterResponse.data.balances ?? {};
 
