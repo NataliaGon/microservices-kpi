@@ -1,0 +1,10 @@
+{
+  "name": "replicated-log",
+  "version": "1.0.0",
+  "description": "Master-secondary replicated log with write concern and retries",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "license": "MIT"
+}

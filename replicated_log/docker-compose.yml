@@ -1,0 +1,37 @@
+services:
+  master:
+    build: .
+    container_name: rl-master
+    environment:
+      ROLE: master
+      PORT: 3000
+      SECONDARIES: http://secondary1:3000,http://secondary2:3000
+      REPLICATION_TIMEOUT_MS: 3500
+      RETRY_BASE_DELAY_MS: 300
+      RETRY_MAX_DELAY_MS: 4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - secondary1
+
+  secondary1:
+    build: .
+    container_name: rl-secondary1
+    environment:
+      ROLE: secondary
+      PORT: 3000
+      APPLY_DELAY_MS: 1500
+      RANDOM_ERROR_PROB: 0.0
+    ports:
+      - "3001:3000"
+
+  secondary2:
+    build: .
+    container_name: rl-secondary2
+    environment:
+      ROLE: secondary
+      PORT: 3000
+      APPLY_DELAY_MS: 500
+      RANDOM_ERROR_PROB: 0.0
+    ports:
+      - "3002:3000"
